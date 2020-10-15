@@ -43,7 +43,6 @@ export class PrePublishCommand extends Command {
       packageJsonPath,
       platforms,
       version,
-      muslPlatforms,
       packageName,
       binaryName,
     } = getNapiConfig(this.configFileName)
@@ -52,8 +51,8 @@ export class PrePublishCommand extends Command {
       await VersionCommand.updatePackageJson(this.prefix, this.configFileName)
       await updatePackageJson(packageJsonPath, {
         optionalDependencies: platforms.reduce(
-          (acc: Record<string, string>, cur: NodeJS.Platform) => {
-            acc[`${packageName}-${cur}`] = `^${version}`
+          (acc: Record<string, string>, cur) => {
+            acc[`${packageName}-${cur.platformArchABI}`] = `^${version}`
             return acc
           },
           {},
@@ -66,9 +65,13 @@ export class PrePublishCommand extends Command {
       version,
     )
 
-    for (const name of [...platforms, ...muslPlatforms]) {
-      const pkgDir = join(process.cwd(), this.prefix, name)
-      const filename = `${binaryName}.${name}.node`
+    for (const platformDetail of platforms) {
+      const pkgDir = join(
+        process.cwd(),
+        this.prefix,
+        `${platformDetail.platformArchABI}`,
+      )
+      const filename = `${binaryName}.${platformDetail.platformArchABI}.node`
       debug(`Read [${chalk.greenBright(filename)}] content`)
       const bindingFile = await readFileAsync(join(process.cwd(), filename))
       const dstPath = join(pkgDir, filename)
